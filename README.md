@@ -57,5 +57,5 @@ I possess extensive experience navigating the complexities of **regulated health
 
 ### 📫 Connect with Me
 - **Specialty:** Securing the intersection of Cloud Identity and Endpoint Stability.
-- **Location:** Bronx, NY
-- **Email:** markrushie@gmail.com
+- **Location:** New York, NY
+- **Email:** mark@mrtechnyc.com
