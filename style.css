@@ -1,0 +1,15 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333; line-height: 1.6; }
+
+.navbar { background: #2c3e50; color: white; display: flex; justify-content: space-between; padding: 1rem 5%; align-items: center; }
+.nav-links { list-style: none; display: flex; }
+.nav-links li { margin-left: 20px; }
+.nav-links a { color: white; text-decoration: none; font-weight: bold; transition: 0.3s; }
+.nav-links a:hover { color: #3498db; }
+
+.hero { background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1350&q=80'); 
+        height: 60vh; background-size: cover; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+.hero h1 { font-size: 3rem; margin-bottom: 10px; }
+.cta-btn { margin-top: 20px; padding: 12px 30px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+
+.content { padding: 50px 10% ; text-align: center; }
