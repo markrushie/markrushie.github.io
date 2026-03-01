@@ -22,6 +22,18 @@ I possess extensive experience navigating the complexities of **regulated health
 * **Vulnerability Management:** Managing full-cycle vulnerability scanning, risk prioritization, and remediation within **NIST frameworks**.
 
 ---
+### 🛡️ Tech Stack & Tools
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![Google Gemini](https://img.shields.io/badge/google%20gemini-8E75B2?style=for-the-badge&logo=google%20gemini&logoColor=white)
+![Windows Server](https://img.shields.io/badge/Windows%20Server-0078D6?style=for-the-badge&logo=windows&logoColor=white)
+![Microsoft Office 365](https://img.shields.io/badge/Microsoft_Office_365-D83B01?style=for-the-badge&logo=microsoft-office&logoColor=white)
+![Cisco Meraki](https://img.shields.io/badge/Cisco%20Meraki-00AEEF?style=for-the-badge&logo=cisco&logoColor=white)
+![Cybersecurity](https://img.shields.io/badge/Cybersecurity-Red?style=for-the-badge&logo=shield&logoColor=white)
+![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)
+![Visual Studio Code](https://img.shields.io/badge/Visual%20Studio%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+
+---
 
 ### 🛠️ Current Technical Focus
 * **Cloud Security Architectures:** Building Azure virtual labs to pilot automated identity governance and secure permission workflows.
