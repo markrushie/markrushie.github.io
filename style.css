@@ -129,37 +129,50 @@ body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333;
 }
 #backToTop:hover { background: #002147; transition: 0.3s; }
 
-/* Mobile Optimization */
-@media (max-width: 768px) {
-    /* Stack the products in 1 column */
+
+/* --- MOBILE OPTIMIZATION (Media Query) --- */
+
+/* This triggers when the screen is 768px wide or smaller */
+@media screen and (max-width: 768px) {
+    
+    /* 1. Stack products in a single column for easy thumb-scrolling */
     .product-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; 
         padding: 20px 5%;
+        gap: 20px;
     }
 
-    /* Make the Hero text smaller so it doesn't wrap awkwardly */
-    .hero h1, .about-hero h1 {
-        font-size: 2rem;
-    }
-
-    /* Expand the search bar to be full width */
-    #productSearch {
-        width: 90%;
-    }
-
-    /* Stack navigation links vertically or hide them in a menu */
+    /* 2. Adjust the Nav Bar so it doesn't overlap */
     .navbar {
         flex-direction: column;
-        gap: 10px;
+        padding: 15px;
     }
-    
+
     .nav-links {
+        margin-top: 15px;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 10px;
     }
 
     .nav-links li {
-        margin: 0 10px;
+        margin: 5px 10px;
+    }
+
+    /* 3. Make the Search Bar take up more width on mobile */
+    #productSearch {
+        width: 85%;
+        font-size: 16px; /* Prevents iPhone auto-zoom on click */
+    }
+
+    /* 4. Scale down large headers so they fit on one line */
+    .hero h1, .about-hero h1 {
+        font-size: 1.8rem;
+    }
+
+    /* 5. Make the "Back to Top" button slightly larger for touch */
+    #backToTop {
+        bottom: 20px;
+        right: 20px;
+        padding: 12px;
     }
 }
