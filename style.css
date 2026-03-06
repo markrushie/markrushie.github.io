@@ -114,3 +114,17 @@ body { font-family: 'Inter', sans-serif; background-color: #f4f7f6; color: #333;
 .arrow-btn:hover { 
     color: #D4AF37; 
 }
+
+/* Search Bar Styling */
+.search-container { text-align: center; padding: 20px 0; background: #fff; border-bottom: 1px solid #eee; }
+#productSearch { padding: 12px; width: 300px; border: 2px solid #002147; border-radius: 25px; outline: none; font-family: 'Satoshi', sans-serif; }
+
+/* Back to Top Button */
+#backToTop {
+    position: fixed; bottom: 30px; right: 30px;
+    background: #D4AF37; color: white; border: none;
+    padding: 15px; border-radius: 50%; cursor: pointer;
+    display: none; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    font-size: 20px; z-index: 100;
+}
+#backToTop:hover { background: #002147; transition: 0.3s; }
