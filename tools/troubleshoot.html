@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FieldFix Pro — Troubleshooting Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0c0f14;--surface:#13161d;--surface2:#1a1e27;--surface3:#222733;
+  --border:#2a3040;--border-active:#3d4a66;
+  --text:#e8ecf4;--text-dim:#8892a6;--text-muted:#5a6478;
+  --accent:#3b82f6;--accent-glow:#3b82f680;
+  --green:#22c55e;--green-bg:#22c55e18;--green-border:#22c55e40;
+  --yellow:#eab308;--yellow-bg:#eab30818;--yellow-border:#eab30840;
+  --red:#ef4444;--red-bg:#ef444418;--red-border:#ef444440;
+  --orange:#f97316;--orange-bg:#f9731618;--orange-border:#f9731640;
+  --radius:10px;--radius-lg:14px;
+}
+html{font-size:15px}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ─── Ambient background ─── */
+body::before{content:'';position:fixed;top:-40%;left:-20%;width:80%;height:80%;background:radial-gradient(ellipse,#3b82f608 0%,transparent 70%);pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;bottom:-30%;right:-10%;width:60%;height:60%;background:radial-gradient(ellipse,#22c55e06 0%,transparent 70%);pointer-events:none;z-index:0}
+
+.app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:24px 20px 60px}
+
+/* ─── Header ─── */
+.header{display:flex;align-items:center;justify-content:space-between;padding:20px 0 28px;border-bottom:1px solid var(--border);margin-bottom:32px;flex-wrap:wrap;gap:16px}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#6366f1);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 20px var(--accent-glow)}
+.logo h1{font-size:1.4rem;font-weight:800;letter-spacing:-.03em}
+.logo h1 span{color:var(--accent)}
+.demo-badge{font-family:'JetBrains Mono',monospace;font-size:.65rem;background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border);padding:4px 10px;border-radius:20px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+
+/* ─── Role Setup ─── */
+.role-setup{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:28px;animation:fadeUp .5s ease}
+.role-setup h2{font-size:1.05rem;font-weight:700;margin-bottom:6px}
+.role-setup p{color:var(--text-dim);font-size:.85rem;margin-bottom:20px}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.role-field label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px}
+.role-field input,.role-field select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:inherit;font-size:.88rem;transition:border .2s}
+.role-field input:focus,.role-field select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.role-field select option{background:var(--surface2)}
+
+/* ─── Issue Cards ─── */
+.section-title{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:16px}
+.issue-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px}
+.issue-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;cursor:pointer;transition:all .25s ease;position:relative;overflow:hidden}
+.issue-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;transition:opacity .25s}
+.issue-card:nth-child(1)::before{background:var(--red);opacity:.5}
+.issue-card:nth-child(2)::before{background:var(--yellow);opacity:.5}
+.issue-card:nth-child(3)::before{background:var(--accent);opacity:.5}
+.issue-card:hover{border-color:var(--border-active);transform:translateY(-2px);box-shadow:0 8px 30px #00000040}
+.issue-card:hover::before{opacity:1}
+.issue-card.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.issue-icon{font-size:1.6rem;margin-bottom:10px}
+.issue-card h3{font-size:.95rem;font-weight:700;margin-bottom:6px}
+.issue-card p{font-size:.8rem;color:var(--text-dim);line-height:1.5}
+.issue-steps-count{font-family:'JetBrains Mono',monospace;font-size:.68rem;color:var(--text-muted);margin-top:10px;display:flex;align-items:center;gap:6px}
+.issue-steps-count::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent)}
+
+/* ─── Workflow Panel ─── */
+.workflow{display:none;animation:fadeUp .4s ease}
+.workflow.visible{display:block}
+.workflow-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.workflow-header h2{font-size:1.15rem;font-weight:800}
+.back-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 16px;color:var(--text-dim);font-family:inherit;font-size:.8rem;cursor:pointer;transition:all .2s}
+.back-btn:hover{border-color:var(--accent);color:var(--text)}
+.progress-bar{width:100%;height:6px;background:var(--surface2);border-radius:3px;margin-bottom:28px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .5s ease}
+
+/* ─── Step Cards ─── */
+.step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden;transition:all .3s ease}
+.step.completed{border-color:var(--green-border);background:linear-gradient(135deg,var(--surface),#22c55e08)}
+.step.skipped{border-color:var(--yellow-border);opacity:.7}
+.step.current{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
+.step-header{display:flex;align-items:center;gap:14px;padding:18px 22px;cursor:pointer;user-select:none}
+.step-number{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:700;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;transition:all .3s}
+.step.completed .step-number{background:var(--green);border-color:var(--green);color:#fff}
+.step.skipped .step-number{background:var(--yellow);border-color:var(--yellow);color:#000}
+.step.current .step-number{background:var(--accent);border-color:var(--accent);color:#fff}
+.step-title{flex:1;font-weight:600;font-size:.9rem}
+.step-status{font-family:'JetBrains Mono',monospace;font-size:.65rem;padding:3px 10px;border-radius:20px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.step.completed .step-status{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.step.skipped .step-status{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+
+.step-body{display:none;padding:0 22px 20px;border-top:1px solid var(--border);margin-top:0}
+.step.current .step-body{display:block;animation:fadeUp .3s ease}
+.step-instruction{padding:16px 0 14px;font-size:.85rem;line-height:1.65;color:var(--text-dim)}
+.step-instruction strong{color:var(--text);font-weight:600}
+
+/* ─── Form Elements ─── */
+.field-group{margin-bottom:14px}
+.field-group label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:6px}
+.field-group textarea,.field-group select,.field-group input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text);font-family:inherit;font-size:.85rem;transition:border .2s;resize:vertical}
+.field-group textarea{min-height:60px}
+.field-group textarea:focus,.field-group select:focus,.field-group input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+
+.radio-group{display:flex;gap:10px;flex-wrap:wrap}
+.radio-option{position:relative}
+.radio-option input{position:absolute;opacity:0;pointer-events:none}
+.radio-option label{display:block;padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);font-size:.82rem;cursor:pointer;transition:all .2s;font-weight:500}
+.radio-option input:checked+label{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+
+.step-actions{display:flex;gap:10px;padding-top:10px;flex-wrap:wrap}
+.btn{padding:10px 22px;border-radius:var(--radius);font-family:inherit;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 12px var(--accent-glow)}
+.btn-primary:hover{background:#4f8ff7;transform:translateY(-1px)}
+.btn-secondary{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--border-active);color:var(--text)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#2dd468}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.btn-danger:hover{background:var(--red);color:#fff}
+
+/* ─── Report ─── */
+.report{display:none;animation:fadeUp .4s ease}
+.report.visible{display:block}
+.report-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:20px}
+.report-card h3{font-size:.95rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.report-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem}
+.report-row:last-child{border-bottom:none}
+.report-label{color:var(--text-muted);font-weight:500}
+.report-value{font-weight:600;text-align:right;max-width:55%;word-break:break-word}
+.report-step{padding:14px;background:var(--surface2);border-radius:var(--radius);margin-bottom:10px}
+.report-step-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.report-step-title{font-weight:600;font-size:.85rem}
+.badge{font-family:'JetBrains Mono',monospace;font-size:.65rem;padding:2px 8px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.report-step-notes{font-size:.8rem;color:var(--text-dim);line-height:1.5;margin-top:6px}
+
+.resolution-banner{text-align:center;padding:32px;border-radius:var(--radius-lg);margin-bottom:24px}
+.resolution-banner.resolved{background:linear-gradient(135deg,#22c55e12,#22c55e06);border:1px solid var(--green-border)}
+.resolution-banner.escalated{background:linear-gradient(135deg,#f9731612,#f9731606);border:1px solid var(--orange-border)}
+.resolution-banner h2{font-size:1.3rem;font-weight:800;margin-bottom:4px}
+.resolution-banner p{color:var(--text-dim);font-size:.85rem}
+
+.print-btn{display:block;width:100%;padding:14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+.print-btn:hover{background:var(--accent);border-color:var(--accent)}
+
+/* ─── Footer ─── */
+.footer{text-align:center;padding:40px 0 20px;border-top:1px solid var(--border);margin-top:40px}
+.footer p{font-size:.78rem;color:var(--text-muted)}
+.footer a{color:var(--accent);text-decoration:none;font-weight:600}
+
+/* ─── Share Bar ─── */
+.share-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px 28px;margin-bottom:28px;animation:fadeUp .5s ease .1s both}
+.share-bar-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.share-bar h3{font-size:.95rem;font-weight:700}
+.share-bar p{font-size:.78rem;color:var(--text-dim);margin-top:2px}
+.share-btns{display:flex;gap:8px;flex-wrap:wrap}
+.share-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-dim);transition:all .22s ease;text-decoration:none}
+.share-btn svg{width:16px;height:16px;flex-shrink:0}
+.share-btn:hover{transform:translateY(-2px);box-shadow:0 4px 16px #00000040}
+.share-btn.linkedin:hover{background:#0a66c2;border-color:#0a66c2;color:#fff}
+.share-btn.twitter:hover{background:#000;border-color:#1d9bf0;color:#fff}
+.share-btn.facebook:hover{background:#1877f2;border-color:#1877f2;color:#fff}
+.share-btn.reddit:hover{background:#ff4500;border-color:#ff4500;color:#fff}
+.share-btn.email-share:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.share-btn.copy-link:hover{background:var(--green);border-color:var(--green);color:#fff}
+.share-btn .copied-check{display:none}
+.share-btn.copied .copy-icon{display:none}
+.share-btn.copied .copied-check{display:inline}
+.share-btn.copied{background:var(--green);border-color:var(--green);color:#fff}
+
+/* ─── Floating Share Pill ─── */
+.floating-share{position:fixed;bottom:24px;right:24px;z-index:100;display:flex;align-items:center;gap:6px;padding:10px 18px;background:var(--surface);border:1px solid var(--border);border-radius:40px;box-shadow:0 8px 32px #00000060;cursor:pointer;transition:all .25s;font-size:.8rem;font-weight:600;color:var(--text-dim)}
+.floating-share:hover{background:var(--accent);border-color:var(--accent);color:#fff;transform:translateY(-2px)}
+.floating-share svg{width:16px;height:16px}
+
+/* ─── CTA Section ─── */
+.cta-section{background:linear-gradient(135deg,#3b82f612,#6366f108);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:40px 32px;text-align:center;margin:32px 0;position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;top:-50%;right:-20%;width:60%;height:200%;background:radial-gradient(ellipse,#3b82f610,transparent 70%);pointer-events:none}
+.cta-section h2{font-size:1.3rem;font-weight:800;margin-bottom:8px;position:relative}
+.cta-section p{color:var(--text-dim);font-size:.88rem;max-width:600px;margin:0 auto 24px;line-height:1.6;position:relative}
+.cta-features{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-bottom:28px;position:relative}
+.cta-chip{font-family:'JetBrains Mono',monospace;font-size:.68rem;padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--text-dim)}
+.cta-buttons{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;position:relative}
+.cta-btn{padding:14px 32px;border-radius:var(--radius);font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;border:none;transition:all .25s;text-decoration:none;display:inline-block}
+.cta-btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 20px var(--accent-glow)}
+.cta-btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 28px var(--accent-glow)}
+.cta-btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.cta-btn-secondary:hover{border-color:var(--accent);transform:translateY(-2px)}
+
+/* ─── URL Input Row ─── */
+.url-row{display:flex;gap:8px;margin-top:16px;max-width:500px;margin-left:auto;margin-right:auto}
+.url-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:.75rem;cursor:text;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.url-copy-btn{padding:10px 18px;background:var(--accent);border:none;border-radius:var(--radius);color:#fff;font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.url-copy-btn:hover{background:#4f8ff7}
+.url-copy-btn.copied{background:var(--green)}
+
+/* ─── Animations ─── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ─── Responsive ─── */
+@media(max-width:640px){
+  .role-grid{grid-template-columns:1fr}
+  .issue-grid{grid-template-columns:1fr}
+  .step-header{padding:14px 16px}
+  .step-body{padding:0 16px 16px}
+  .report-card{padding:20px}
+}
+
+@media print{
+  body{background:#fff;color:#111}
+  .back-btn,.step-actions,.role-setup,.issue-grid,.print-btn,.footer,.demo-badge,.header,.share-bar,.floating-share,.cta-section{display:none!important}
+  .step,.report-card,.resolution-banner{border:1px solid #ccc;break-inside:avoid}
+  .step-body{display:block!important}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ═══ HEADER ═══ -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <h1>Field<span>Fix</span> Pro</h1>
+    </div>
+    <div class="demo-badge">Demo / Proof of Concept</div>
+  </div>
+
+  <!-- ═══ SHARE BAR ═══ -->
+  <div class="share-bar" id="shareBar">
+    <div class="share-bar-inner">
+      <div>
+        <h3>📣 Know someone who needs this?</h3>
+        <p>Share this free troubleshooting tool with your team or network</p>
+      </div>
+      <div class="share-btns">
+        <a class="share-btn linkedin" onclick="shareOn('linkedin')" title="Share on LinkedIn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+        </a>
+        <a class="share-btn twitter" onclick="shareOn('twitter')" title="Share on X / Twitter">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X / Twitter
+        </a>
+        <a class="share-btn facebook" onclick="shareOn('facebook')" title="Share on Facebook">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </a>
+        <a class="share-btn reddit" onclick="shareOn('reddit')" title="Share on Reddit">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+          Reddit
+        </a>
+        <a class="share-btn email-share" onclick="shareOn('email')" title="Share via Email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+          Email
+        </a>
+        <button class="share-btn copy-link" onclick="copyShareLink(this)" title="Copy link">
+          <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <svg class="copied-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span class="copy-text">Copy Link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ROLE SETUP ═══ -->
+  <div class="role-setup" id="roleSetup">
+    <h2>Ticket Setup</h2>
+    <p>Assign the lead and field technician for this troubleshooting session. All steps and notes are logged for documentation.</p>
+    <div class="role-grid">
+      <div class="role-field">
+        <label>Lead / Supervisor</label>
+        <input type="text" id="leadName" placeholder="e.g. Sarah Chen" />
+      </div>
+      <div class="role-field">
+        <label>Field Technician</label>
+        <input type="text" id="techName" placeholder="e.g. Marcus Johnson" />
+      </div>
+      <div class="role-field">
+        <label>Ticket / Work Order #</label>
+        <input type="text" id="ticketNum" placeholder="e.g. WO-20260322-001" />
+      </div>
+      <div class="role-field">
+        <label>Location / Asset ID</label>
+        <input type="text" id="locationId" placeholder="e.g. Bldg-A / Desk 14" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ISSUE SELECTION ═══ -->
+  <div id="issueSelection">
+    <div class="section-title">Select the reported issue</div>
+    <div class="issue-grid">
+      <div class="issue-card" onclick="selectIssue(0)">
+        <div class="issue-icon">🖥️</div>
+        <h3>Computer Won't Power On</h3>
+        <p>Machine is completely unresponsive — no lights, no fans, no display output when power button is pressed.</p>
+        <div class="issue-steps-count">6 troubleshooting steps</div>
+      </div>
+      <div class="issue-card" onclick="selectIssue(1)">
+        <div class="issue-icon">🐌</div>
+        <h3>Extremely Slow Performance</h3>
+        <p>Computer boots but applications take forever to open, freezes during use, or generally runs far below expected speed.</p>
+        <div class="issue-steps-count">6 troubleshooting steps</div>
+      </div>
+      <div class="issue-card" onclick="selectIssue(2)">
+        <div class="issue-icon">🌐</div>
+        <h3>No Network / Internet Connectivity</h3>
+        <p>Computer powers on normally but cannot connect to the network, load websites, or reach internal resources.</p>
+        <div class="issue-steps-count">6 troubleshooting steps</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ WORKFLOW ═══ -->
+  <div class="workflow" id="workflow">
+    <div class="workflow-header">
+      <h2 id="workflowTitle"></h2>
+      <button class="back-btn" onclick="goBack()">← Back to Issues</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div id="stepsContainer"></div>
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap" id="workflowActions">
+      <button class="btn btn-success" onclick="generateReport(false)" style="display:none" id="resolveBtn">✓ Mark Resolved & Generate Report</button>
+      <button class="btn btn-danger" onclick="generateReport(true)" id="escalateBtn">⚠ Escalate & Generate Report</button>
+    </div>
+  </div>
+
+  <!-- ═══ REPORT ═══ -->
+  <div class="report" id="report">
+    <div class="resolution-banner" id="resBanner">
+      <h2 id="resTitle"></h2>
+      <p id="resSubtitle"></p>
+    </div>
+    <div class="report-card">
+      <h3>📋 Ticket Details</h3>
+      <div id="reportMeta"></div>
+    </div>
+    <div class="report-card">
+      <h3>🔧 Steps Performed</h3>
+      <div id="reportSteps"></div>
+    </div>
+    <div class="report-card" id="reportEscCard" style="display:none">
+      <h3>⚠️ Escalation Notes</h3>
+      <div id="reportEscNotes"></div>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+    <button class="back-btn" style="width:100%;text-align:center;margin-top:10px;padding:14px" onclick="resetAll()">Start New Ticket</button>
+  </div>
+
+  <!-- ═══ CTA SECTION ═══ -->
+  <div class="cta-section">
+    <h2>Ready for the Full Version?</h2>
+    <p>This demo covers 3 common issues. A production build is fully customized to your workflows, your equipment, and your team's documentation requirements.</p>
+    <div class="cta-features">
+      <span class="cta-chip">🔐 User Auth & Roles</span>
+      <span class="cta-chip">🗄️ Database Logging</span>
+      <span class="cta-chip">📷 Photo Capture</span>
+      <span class="cta-chip">📊 Analytics Dashboard</span>
+      <span class="cta-chip">🔁 Escalation Routing</span>
+      <span class="cta-chip">📱 Mobile Native</span>
+      <span class="cta-chip">🔌 API Integrations</span>
+      <span class="cta-chip">♾️ Unlimited Issues</span>
+    </div>
+    <div class="cta-buttons">
+      <a href="#" class="cta-btn cta-btn-primary" onclick="shareOn('email-cta');return false;">Get a Custom Quote →</a>
+      <a href="#" class="cta-btn cta-btn-secondary" onclick="shareOn('linkedin');return false;">Share on LinkedIn</a>
+    </div>
+    <div class="url-row">
+      <div class="url-input" id="urlDisplay"></div>
+      <button class="url-copy-btn" id="urlCopyBtn" onclick="copyURL(this)">Copy URL</button>
+    </div>
+  </div>
+
+  <!-- ═══ FOOTER ═══ -->
+  <div class="footer">
+    <p><strong>FieldFix Pro</strong> — Demo Build &nbsp;|&nbsp; Want a customized version? <a href="#" onclick="shareOn('email-cta');return false;">Contact us to build yours →</a></p>
+    <p style="margin-top:6px;font-size:.7rem">This is a proof-of-concept. Production versions include user auth, database logging, photo capture, escalation routing & more.</p>
+    <div style="margin-top:16px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+      <a class="share-btn linkedin" onclick="shareOn('linkedin')" style="font-size:.72rem;padding:7px 12px">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        LinkedIn
+      </a>
+      <a class="share-btn twitter" onclick="shareOn('twitter')" style="font-size:.72rem;padding:7px 12px">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        X
+      </a>
+      <a class="share-btn facebook" onclick="shareOn('facebook')" style="font-size:.72rem;padding:7px 12px">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </a>
+      <a class="share-btn reddit" onclick="shareOn('reddit')" style="font-size:.72rem;padding:7px 12px">
+        <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+        Reddit
+      </a>
+    </div>
+  </div>
+
+  <!-- ═══ FLOATING SHARE PILL ═══ -->
+  <div class="floating-share" onclick="toggleFloatingShare()" id="floatingShare">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Share Tool
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  ISSUE DEFINITIONS — 3 common "Computer Not Working" scenarios
+// ═══════════════════════════════════════════════════════════════
+
+const ISSUES = [
+  {
+    title: "Computer Won't Power On",
+    steps: [
+      {
+        title: "Verify Power Source",
+        instruction: "<strong>Check the wall outlet and power strip.</strong> Plug a known-working device (phone charger, lamp) into the same outlet. Confirm the power strip is switched on and any surge protector hasn't tripped.",
+        fields: [
+          { id:"outlet_ok", type:"radio", label:"Outlet has power?", options:["Yes","No"] },
+          { id:"outlet_notes", type:"textarea", label:"Observations / actions taken" }
+        ]
+      },
+      {
+        title: "Inspect Power Cable & Connections",
+        instruction: "<strong>Unplug and reseat the power cable</strong> at both the wall outlet and the back of the computer. Look for bent pins, frayed cables, or loose IEC connectors. If a spare cable is available, swap it in.",
+        fields: [
+          { id:"cable_ok", type:"radio", label:"Cable is intact and seated?", options:["Yes","No — replaced","No — no spare available"] },
+          { id:"cable_notes", type:"textarea", label:"Notes" }
+        ]
+      },
+      {
+        title: "Test the Power Button & Front Panel",
+        instruction: "<strong>Press and hold the power button for 10 seconds</strong>, then release and press again. Listen for any fan spin, beep codes, or LED flicker. If the case has a reset button, try that as well.",
+        fields: [
+          { id:"any_signs", type:"radio", label:"Any signs of life (fans, LEDs, beeps)?", options:["Yes — partial response","No — completely dead"] },
+          { id:"beep_codes", type:"textarea", label:"Beep pattern / LED behavior (if any)" }
+        ]
+      },
+      {
+        title: "Perform a Power Drain (Static Discharge)",
+        instruction: "<strong>Unplug the machine from power entirely.</strong> If laptop, remove battery if possible. Hold the power button for 30 seconds to drain residual charge. Reconnect power and try again.",
+        fields: [
+          { id:"drain_result", type:"radio", label:"Result after power drain?", options:["Powered on — resolved","Still dead"] },
+          { id:"drain_notes", type:"textarea", label:"Additional notes" }
+        ]
+      },
+      {
+        title: "Inspect Internal Components (if authorized)",
+        instruction: "<strong>Open the case and visually inspect</strong> the motherboard for bulging/leaking capacitors, burnt marks, or loose 24-pin / 8-pin power connectors. Reseat RAM and GPU. Check the PSU fan — if the PSU fan doesn't spin at all, the PSU is likely failed.",
+        fields: [
+          { id:"internal_findings", type:"radio", label:"Visual findings?", options:["Loose connection found & reseated","Visible damage (burn/bulge)","No visible issues","Not authorized to open"] },
+          { id:"internal_notes", type:"textarea", label:"Describe findings in detail" }
+        ]
+      },
+      {
+        title: "Final Assessment & Determination",
+        instruction: "<strong>Based on all preceding steps, determine the outcome.</strong> If the machine powers on, verify it boots to OS and run a quick stability check. If still dead, document for hardware replacement or escalation.",
+        fields: [
+          { id:"final_status", type:"radio", label:"Final status?", options:["Resolved — machine operational","Needs PSU replacement","Needs motherboard replacement","Needs further diagnosis — escalate"] },
+          { id:"final_notes", type:"textarea", label:"Closing notes & recommendations" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "Extremely Slow Performance",
+    steps: [
+      {
+        title: "Gather Baseline — Open Task Manager",
+        instruction: "<strong>Press Ctrl+Shift+Esc</strong> to open Task Manager. Go to the Performance tab. Document CPU, Memory, and Disk usage at idle. If any resource is pinned near 100%, that's the bottleneck.",
+        fields: [
+          { id:"cpu_usage", type:"text", label:"CPU usage at idle (%)" },
+          { id:"ram_usage", type:"text", label:"Memory usage at idle (% or GB used / total)" },
+          { id:"disk_usage", type:"text", label:"Disk usage at idle (%)" },
+          { id:"baseline_notes", type:"textarea", label:"Top processes consuming resources" }
+        ]
+      },
+      {
+        title: "Check for Runaway Processes",
+        instruction: "<strong>In Task Manager → Processes tab,</strong> sort by CPU then by Memory. Look for any single process consuming excessive resources (antivirus scan, Windows Update, browser with 50+ tabs, crypto miner malware). End non-essential runaway tasks.",
+        fields: [
+          { id:"runaway_found", type:"radio", label:"Runaway process identified?", options:["Yes — killed it, performance improved","Yes — killed it, still slow","No runaway processes found"] },
+          { id:"runaway_notes", type:"textarea", label:"Process name(s) and actions taken" }
+        ]
+      },
+      {
+        title: "Check Disk Health & Space",
+        instruction: "<strong>Open File Explorer → This PC.</strong> Verify the boot drive (C:) has at least 10-15% free space. Then open Command Prompt as admin and run: <code>wmic diskdrive get status</code> and <code>chkdsk C: /scan</code> (non-destructive). Low space or disk errors can cripple performance.",
+        fields: [
+          { id:"disk_free", type:"text", label:"Free space on C: drive" },
+          { id:"disk_health", type:"radio", label:"Disk health status?", options:["OK / Healthy","Errors found","Drive space critically low (<5%)"] },
+          { id:"disk_notes", type:"textarea", label:"Disk diagnostics output / notes" }
+        ]
+      },
+      {
+        title: "Check Startup Programs & Services",
+        instruction: "<strong>Task Manager → Startup tab.</strong> Disable non-essential startup items (Startup impact: High). Also run <code>msconfig</code> and review Services for unnecessary third-party services. Reboot after changes.",
+        fields: [
+          { id:"startup_items", type:"text", label:"Number of startup items disabled" },
+          { id:"post_reboot", type:"radio", label:"Performance after cleanup & reboot?", options:["Significantly improved","Slightly improved","No change"] },
+          { id:"startup_notes", type:"textarea", label:"Items disabled / notes" }
+        ]
+      },
+      {
+        title: "Scan for Malware",
+        instruction: "<strong>Run a full antivirus/malware scan.</strong> Use the installed enterprise AV, or if unavailable, run Windows Defender full scan: Settings → Update & Security → Windows Security → Virus & Threat Protection → Full Scan. Crypto miners and adware are common performance killers.",
+        fields: [
+          { id:"malware_result", type:"radio", label:"Scan result?", options:["Clean — no threats","Threats found & removed","Scan could not complete"] },
+          { id:"malware_notes", type:"textarea", label:"Threat details (if any)" }
+        ]
+      },
+      {
+        title: "Hardware Assessment & Final Check",
+        instruction: "<strong>If software steps didn't resolve it,</strong> consider hardware: Is the CPU thermal throttling? (check temps with Task Manager Performance → CPU). Is the HDD failing? (consider SSD upgrade). Is RAM insufficient for workload? Document findings and determine next steps.",
+        fields: [
+          { id:"hw_assessment", type:"radio", label:"Root cause determination?", options:["Software issue — resolved","Needs RAM upgrade","Needs SSD upgrade","Thermal / cooling issue","Unknown — escalate"] },
+          { id:"hw_notes", type:"textarea", label:"Final notes & hardware recommendations" }
+        ]
+      }
+    ]
+  },
+  {
+    title: "No Network / Internet Connectivity",
+    steps: [
+      {
+        title: "Physical Connection Check",
+        instruction: "<strong>For wired:</strong> Verify the Ethernet cable is firmly seated at both the PC and wall jack/switch. Check for a link light on the NIC. Try a different cable and port. <strong>For wireless:</strong> Confirm Wi-Fi is turned on (check hardware toggle/Fn key). Verify the Wi-Fi icon isn't in airplane mode.",
+        fields: [
+          { id:"conn_type", type:"radio", label:"Connection type?", options:["Wired (Ethernet)","Wireless (Wi-Fi)","Both attempted"] },
+          { id:"physical_ok", type:"radio", label:"Physical connection verified?", options:["Yes — link light active","No link light / no SSID visible","N/A — wireless only"] },
+          { id:"physical_notes", type:"textarea", label:"Observations" }
+        ]
+      },
+      {
+        title: "Check Network Adapter Status",
+        instruction: "<strong>Open Settings → Network & Internet</strong>, or run <code>ncpa.cpl</code>. Verify the adapter is enabled and not showing a red X or yellow warning. If disabled, right-click → Enable. If there's a warning, note the error.",
+        fields: [
+          { id:"adapter_status", type:"radio", label:"Adapter status?", options:["Enabled & connected","Enabled but no connection","Disabled — re-enabled it","Adapter missing / not detected"] },
+          { id:"adapter_notes", type:"textarea", label:"Error messages / details" }
+        ]
+      },
+      {
+        title: "IP Configuration Check",
+        instruction: "<strong>Open Command Prompt and run:</strong> <code>ipconfig /all</code>. Verify the machine has a valid IP address (not 169.254.x.x which indicates DHCP failure). Check subnet mask, default gateway, and DNS servers are correct for this network.",
+        fields: [
+          { id:"ip_addr", type:"text", label:"IP Address assigned" },
+          { id:"gateway", type:"text", label:"Default Gateway" },
+          { id:"dns_servers", type:"text", label:"DNS Server(s)" },
+          { id:"ip_valid", type:"radio", label:"IP configuration valid?", options:["Yes — correct network range","No — APIPA / self-assigned (169.254.x.x)","No — wrong subnet"] },
+          { id:"ip_notes", type:"textarea", label:"Notes" }
+        ]
+      },
+      {
+        title: "Network Stack Reset",
+        instruction: "<strong>Open Command Prompt as Administrator</strong> and run these in order:<br><code>ipconfig /release</code><br><code>ipconfig /flushdns</code><br><code>netsh winsock reset</code><br><code>netsh int ip reset</code><br><code>ipconfig /renew</code><br>Then reboot the machine.",
+        fields: [
+          { id:"reset_result", type:"radio", label:"Result after network reset & reboot?", options:["Connected — issue resolved","Still no connectivity","Partial — local network only, no internet"] },
+          { id:"reset_notes", type:"textarea", label:"Command outputs / error messages" }
+        ]
+      },
+      {
+        title: "Ping & DNS Diagnostics",
+        instruction: "<strong>Test connectivity in layers:</strong><br>1. <code>ping 127.0.0.1</code> (loopback — tests TCP/IP stack)<br>2. <code>ping [gateway IP]</code> (tests local network)<br>3. <code>ping 8.8.8.8</code> (tests internet via IP)<br>4. <code>ping google.com</code> (tests DNS resolution)<br>The step where it fails tells you where the problem is.",
+        fields: [
+          { id:"ping_loopback", type:"radio", label:"Ping 127.0.0.1?", options:["Success","Fail"] },
+          { id:"ping_gateway", type:"radio", label:"Ping gateway?", options:["Success","Fail"] },
+          { id:"ping_internet", type:"radio", label:"Ping 8.8.8.8?", options:["Success","Fail"] },
+          { id:"ping_dns", type:"radio", label:"Ping google.com?", options:["Success","Fail"] },
+          { id:"ping_notes", type:"textarea", label:"Failure point analysis" }
+        ]
+      },
+      {
+        title: "Final Determination & Resolution",
+        instruction: "<strong>Based on diagnostic results, determine root cause:</strong> If gateway fails — local NIC/cable/switch issue. If IP pings work but DNS fails — DNS configuration issue. If everything fails on this PC but others on the same network work — NIC driver or hardware failure.",
+        fields: [
+          { id:"net_rootcause", type:"radio", label:"Root cause?", options:["DNS issue — fixed by changing DNS servers","Cable/port issue — resolved with swap","Driver issue — reinstalled/updated driver","Switch/AP issue — infrastructure problem","NIC hardware failure — needs replacement","Resolved — was config/user error","Unknown — escalate to network team"] },
+          { id:"net_final_notes", type:"textarea", label:"Resolution details & any follow-up needed" }
+        ]
+      }
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════
+//  APPLICATION STATE
+// ═══════════════════════════════════════════════════════════════
+
+let currentIssue = null;
+let currentStep = 0;
+let stepData = [];
+let startTime = null;
+
+// ═══════════════════════════════════════════════════════════════
+//  FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function selectIssue(idx) {
+  currentIssue = idx;
+  currentStep = 0;
+  startTime = new Date();
+  stepData = ISSUES[idx].steps.map(() => ({ status:'pending', data:{} }));
+
+  document.getElementById('issueSelection').style.display = 'none';
+  document.getElementById('workflow').classList.add('visible');
+  document.getElementById('workflowTitle').textContent = ISSUES[idx].title;
+
+  renderSteps();
+}
+
+function renderSteps() {
+  const issue = ISSUES[currentIssue];
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = '';
+
+  issue.steps.forEach((step, i) => {
+    const state = stepData[i].status;
+    const isCurrent = i === currentStep && state === 'pending';
+
+    const div = document.createElement('div');
+    div.className = `step ${state !== 'pending' ? state : ''} ${isCurrent ? 'current' : ''}`;
+
+    let statusHTML = '';
+    if(state === 'completed') statusHTML = '<span class="step-status">Completed</span>';
+    else if(state === 'skipped') statusHTML = '<span class="step-status">Skipped</span>';
+
+    let fieldsHTML = '';
+    step.fields.forEach(f => {
+      const saved = stepData[i].data[f.id] || '';
+      if(f.type === 'radio') {
+        fieldsHTML += `<div class="field-group"><label>${f.label}</label><div class="radio-group">`;
+        f.options.forEach((opt, oi) => {
+          const checked = saved === opt ? 'checked' : '';
+          fieldsHTML += `<div class="radio-option"><input type="radio" name="${f.id}_${i}" id="${f.id}_${i}_${oi}" value="${opt}" ${checked} onchange="saveField(${i},'${f.id}',this.value)"><label for="${f.id}_${i}_${oi}">${opt}</label></div>`;
+        });
+        fieldsHTML += `</div></div>`;
+      } else if(f.type === 'textarea') {
+        fieldsHTML += `<div class="field-group"><label>${f.label}</label><textarea placeholder="Document findings here..." onchange="saveField(${i},'${f.id}',this.value)">${saved}</textarea></div>`;
+      } else {
+        fieldsHTML += `<div class="field-group"><label>${f.label}</label><input type="text" placeholder="Enter value..." value="${saved}" onchange="saveField(${i},'${f.id}',this.value)"></div>`;
+      }
+    });
+
+    div.innerHTML = `
+      <div class="step-header" onclick="toggleStep(${i})">
+        <div class="step-number">${state === 'completed' ? '✓' : state === 'skipped' ? '—' : i+1}</div>
+        <div class="step-title">${step.title}</div>
+        ${statusHTML}
+      </div>
+      <div class="step-body">
+        <div class="step-instruction">${step.instruction}</div>
+        ${fieldsHTML}
+        <div class="step-actions">
+          <button class="btn btn-primary" onclick="completeStep(${i})">Complete Step →</button>
+          <button class="btn btn-secondary" onclick="skipStep(${i})">Skip</button>
+        </div>
+      </div>`;
+    container.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function toggleStep(i) {
+  if(stepData[i].status === 'pending' && i <= currentStep) {
+    currentStep = i;
+    renderSteps();
+  }
+}
+
+function saveField(stepIdx, fieldId, value) {
+  stepData[stepIdx].data[fieldId] = value;
+}
+
+function completeStep(i) {
+  stepData[i].status = 'completed';
+  stepData[i].completedAt = new Date().toLocaleTimeString();
+  if(i + 1 < ISSUES[currentIssue].steps.length) {
+    currentStep = i + 1;
+    // Advance to next pending
+    while(currentStep < ISSUES[currentIssue].steps.length && stepData[currentStep].status !== 'pending') currentStep++;
+  }
+  renderSteps();
+  checkCompletion();
+}
+
+function skipStep(i) {
+  stepData[i].status = 'skipped';
+  stepData[i].completedAt = new Date().toLocaleTimeString();
+  if(i + 1 < ISSUES[currentIssue].steps.length) {
+    currentStep = i + 1;
+    while(currentStep < ISSUES[currentIssue].steps.length && stepData[currentStep].status !== 'pending') currentStep++;
+  }
+  renderSteps();
+  checkCompletion();
+}
+
+function updateProgress() {
+  const total = stepData.length;
+  const done = stepData.filter(s => s.status !== 'pending').length;
+  document.getElementById('progressFill').style.width = `${(done/total)*100}%`;
+}
+
+function checkCompletion() {
+  const allDone = stepData.every(s => s.status !== 'pending');
+  document.getElementById('resolveBtn').style.display = allDone ? 'inline-block' : 'none';
+}
+
+function generateReport(escalated) {
+  const endTime = new Date();
+  const issue = ISSUES[currentIssue];
+
+  // Hide workflow, show report
+  document.getElementById('workflow').classList.remove('visible');
+  document.getElementById('report').classList.add('visible');
+
+  // Banner
+  const banner = document.getElementById('resBanner');
+  const title = document.getElementById('resTitle');
+  const sub = document.getElementById('resSubtitle');
+  if(escalated) {
+    banner.className = 'resolution-banner escalated';
+    title.textContent = '⚠ Escalated';
+    sub.textContent = 'This ticket has been documented and flagged for escalation to the next support tier.';
+  } else {
+    banner.className = 'resolution-banner resolved';
+    title.textContent = '✅ Resolved';
+    sub.textContent = 'Issue has been resolved on-site. Full documentation is below.';
+  }
+
+  // Meta
+  const lead = document.getElementById('leadName').value || 'Not specified';
+  const tech = document.getElementById('techName').value || 'Not specified';
+  const ticket = document.getElementById('ticketNum').value || 'N/A';
+  const loc = document.getElementById('locationId').value || 'N/A';
+
+  document.getElementById('reportMeta').innerHTML = `
+    <div class="report-row"><span class="report-label">Issue</span><span class="report-value">${issue.title}</span></div>
+    <div class="report-row"><span class="report-label">Lead / Supervisor</span><span class="report-value">${lead}</span></div>
+    <div class="report-row"><span class="report-label">Field Technician</span><span class="report-value">${tech}</span></div>
+    <div class="report-row"><span class="report-label">Ticket #</span><span class="report-value">${ticket}</span></div>
+    <div class="report-row"><span class="report-label">Location / Asset</span><span class="report-value">${loc}</span></div>
+    <div class="report-row"><span class="report-label">Started</span><span class="report-value">${startTime.toLocaleString()}</span></div>
+    <div class="report-row"><span class="report-label">Completed</span><span class="report-value">${endTime.toLocaleString()}</span></div>
+    <div class="report-row"><span class="report-label">Duration</span><span class="report-value">${Math.round((endTime - startTime)/60000)} min</span></div>
+    <div class="report-row"><span class="report-label">Status</span><span class="report-value">${escalated ? '⚠ Escalated' : '✅ Resolved'}</span></div>`;
+
+  // Steps detail
+  let stepsHTML = '';
+  issue.steps.forEach((step, i) => {
+    const sd = stepData[i];
+    const badgeClass = sd.status === 'completed' ? 'badge-green' : sd.status === 'skipped' ? 'badge-yellow' : 'badge-red';
+    const badgeText = sd.status === 'completed' ? 'Completed' : sd.status === 'skipped' ? 'Skipped' : 'Not reached';
+
+    let notesHTML = '';
+    step.fields.forEach(f => {
+      const val = sd.data[f.id];
+      if(val) notesHTML += `<div><strong>${f.label}:</strong> ${val}</div>`;
+    });
+    if(sd.completedAt) notesHTML += `<div><strong>Timestamp:</strong> ${sd.completedAt}</div>`;
+
+    stepsHTML += `<div class="report-step">
+      <div class="report-step-header">
+        <span class="report-step-title">Step ${i+1}: ${step.title}</span>
+        <span class="badge ${badgeClass}">${badgeText}</span>
+      </div>
+      ${notesHTML ? `<div class="report-step-notes">${notesHTML}</div>` : ''}
+    </div>`;
+  });
+  document.getElementById('reportSteps').innerHTML = stepsHTML;
+
+  // Escalation notes
+  if(escalated) {
+    document.getElementById('reportEscCard').style.display = 'block';
+    document.getElementById('reportEscNotes').innerHTML = `<p style="font-size:.85rem;color:var(--text-dim)">This ticket was escalated before all steps were completed or because the issue could not be resolved at the field level. Review the step-by-step documentation above for all work performed. The next tier should pick up from where the field tech left off.</p>`;
+  }
+}
+
+function goBack() {
+  document.getElementById('workflow').classList.remove('visible');
+  document.getElementById('issueSelection').style.display = 'block';
+  currentIssue = null;
+}
+
+function resetAll() {
+  document.getElementById('report').classList.remove('visible');
+  document.getElementById('issueSelection').style.display = 'block';
+  document.getElementById('leadName').value = '';
+  document.getElementById('techName').value = '';
+  document.getElementById('ticketNum').value = '';
+  document.getElementById('locationId').value = '';
+  currentIssue = null;
+  currentStep = 0;
+  stepData = [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SHARING & SOCIAL FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+// ★ REPLACE THIS with your actual deployed URL
+const TOOL_URL = 'https://yoursite.com/fieldfix-pro';
+const TOOL_TITLE = 'FieldFix Pro — Field Tech Troubleshooting Tool';
+const TOOL_DESC = 'Free guided troubleshooting app for field technicians. Step-by-step issue resolution with full documentation. Try the demo — customize it for your team.';
+const HASHTAGS = 'FieldService,IT,TechTools,Troubleshooting';
+
+// Set the URL display
+document.addEventListener('DOMContentLoaded', () => {
+  const urlDisp = document.getElementById('urlDisplay');
+  if(urlDisp) urlDisp.textContent = TOOL_URL;
+});
+
+function shareOn(platform) {
+  const encoded = encodeURIComponent(TOOL_URL);
+  const encodedTitle = encodeURIComponent(TOOL_TITLE);
+  const encodedDesc = encodeURIComponent(TOOL_DESC);
+  let url = '';
+
+  switch(platform) {
+    case 'linkedin':
+      // LinkedIn share with pre-filled post text
+      url = `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`;
+      break;
+    case 'twitter':
+      url = `https://twitter.com/intent/tweet?text=${encodeURIComponent('🔧 Found this free troubleshooting tool for field techs — guided step-by-step resolution with full documentation. Check out the demo:')}&url=${encoded}&hashtags=${HASHTAGS}`;
+      break;
+    case 'facebook':
+      url = `https://www.facebook.com/sharer/sharer.php?u=${encoded}&quote=${encodedDesc}`;
+      break;
+    case 'reddit':
+      url = `https://www.reddit.com/submit?url=${encoded}&title=${encodedTitle}`;
+      break;
+    case 'email':
+      url = `mailto:?subject=${encodedTitle}&body=${encodeURIComponent('Hey,\n\nCheck out this troubleshooting tool for field technicians. It walks techs through step-by-step resolution and documents everything.\n\nTry the demo: ' + TOOL_URL + '\n\nThey also build custom versions for teams.')}`;
+      break;
+    case 'email-cta':
+      url = `mailto:hello@yourcompany.com?subject=${encodeURIComponent('Custom FieldFix Pro Quote Request')}&body=${encodeURIComponent('Hi,\n\nI tried the FieldFix Pro demo and I\'m interested in a customized version for my team.\n\nHere\'s what I\'m looking for:\n- Number of technicians: \n- Types of issues to cover: \n- Integrations needed: \n\nPlease send me a quote.\n\nThanks!')}`;
+      break;
+  }
+
+  if(url) window.open(url, platform === 'email' || platform === 'email-cta' ? '_self' : '_blank', 'noopener,noreferrer');
+}
+
+function copyShareLink(btn) {
+  navigator.clipboard.writeText(TOOL_URL).then(() => {
+    btn.classList.add('copied');
+    btn.querySelector('.copy-text').textContent = 'Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.querySelector('.copy-text').textContent = 'Copy Link';
+    }, 2500);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = TOOL_URL;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.classList.add('copied');
+    btn.querySelector('.copy-text').textContent = 'Copied!';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.querySelector('.copy-text').textContent = 'Copy Link';
+    }, 2500);
+  });
+}
+
+function copyURL(btn) {
+  navigator.clipboard.writeText(TOOL_URL).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy URL';
+      btn.classList.remove('copied');
+    }, 2500);
+  });
+}
+
+function toggleFloatingShare() {
+  document.getElementById('shareBar').scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// Show/hide floating share button based on scroll position
+window.addEventListener('scroll', () => {
+  const shareBar = document.getElementById('shareBar');
+  const floating = document.getElementById('floatingShare');
+  if(!shareBar || !floating) return;
+  const rect = shareBar.getBoundingClientRect();
+  floating.style.opacity = rect.bottom < 0 ? '1' : '0';
+  floating.style.pointerEvents = rect.bottom < 0 ? 'auto' : 'none';
+});
+</script>
+</body>
+</html>
