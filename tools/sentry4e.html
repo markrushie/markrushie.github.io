@@ -4,248 +4,176 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sentry4e — Email Header Security Analysis | MrTechNYC</title>
-<meta name="description" content="Free email header security analysis tool. Check SPF, DKIM, DMARC authentication and identify suspicious emails. A free resource from MrTechNYC.">
+<meta name="description" content="Free email header security analysis tool by MrTechNYC. Analyze SPF, DKIM, DMARC authentication protocols. Identify phishing attempts and spoofed emails.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    min-height: 100vh;
-    background: #0a0a0c;
-    color: #e4e4e7;
-    font-family: 'JetBrains Mono', monospace;
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
+  :root {
+    --bg-deep: #050a18; --bg-panel: #0a1628; --bg-card: #0d1d35; --bg-card-hover: #112444;
+    --border: rgba(56,139,253,0.12); --border-bright: rgba(56,139,253,0.3);
+    --accent: #388bfd; --accent-glow: rgba(56,139,253,0.15); --accent-bright: #58a6ff;
+    --green: #3fb950; --green-bg: rgba(63,185,80,0.1); --green-border: rgba(63,185,80,0.25);
+    --yellow: #d29922; --yellow-bg: rgba(210,153,34,0.1); --yellow-border: rgba(210,153,34,0.25);
+    --red: #f85149; --red-bg: rgba(248,81,73,0.1); --red-border: rgba(248,81,73,0.25);
+    --text-primary: #e6edf3; --text-secondary: #8b949e; --text-muted: #484f58;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'Plus Jakarta Sans', sans-serif;
   }
-  .ambient-1 { position: fixed; top: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 70%); pointer-events: none; }
-  .ambient-2 { position: fixed; bottom: -300px; left: -200px; width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(14,165,233,0.04) 0%, transparent 70%); pointer-events: none; }
-
-  header {
-    padding: 28px 32px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    display: flex; justify-content: space-between; align-items: center;
-    position: relative; z-index: 2;
-  }
-  .logo-row { display: flex; align-items: center; gap: 10px; }
-  .status-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-    background: #22c55e; box-shadow: 0 0 8px #22c55e66;
-    transition: all 0.3s;
-  }
-  .status-dot.scanning { background: #f59e0b; box-shadow: 0 0 8px #f59e0b66; }
-  .logo-text {
-    font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #e4e4e7 0%, #a1a1aa 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .version-badge {
-    font-size: 9px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.25);
-    padding: 2px 8px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.08);
-  }
-  .logo-sub { margin: 4px 0 0 20px; font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 1px; }
-  .header-brand { font-size: 10px; color: rgba(255,255,255,0.2); text-align: right; }
-  .header-brand div:last-child { margin-top: 2px; }
-
-  main { max-width: 720px; margin: 0 auto; padding: 24px 24px 80px; position: relative; z-index: 2; }
-
-  .tabs {
-    display: flex; margin-bottom: 24px; border-radius: 8px; overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.06);
-  }
-  .tab-btn {
-    flex: 1; padding: 12px 16px; border: none; cursor: pointer;
-    font-size: 11px; font-weight: 700; letter-spacing: 2px;
-    font-family: 'JetBrains Mono', monospace;
-    background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.2);
-    transition: all 0.2s;
-  }
-  .tab-btn.active { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
-  .tab-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .card {
-    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px; padding: 24px;
-  }
-  .card-label {
-    font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.2); margin-bottom: 16px;
-  }
-
-  .input-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-
-  .btn-sample {
-    padding: 5px 12px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.4);
-    font-size: 10px; font-weight: 600; cursor: pointer; font-family: 'JetBrains Mono', monospace;
-    letter-spacing: 1px; transition: all 0.2s;
-  }
-  .btn-sample:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); }
-
-  #headerInput {
-    width: 100%; min-height: 260px; padding: 16px; border-radius: 8px;
-    background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06);
-    color: #a1a1aa; font-size: 12px; line-height: 1.7;
-    font-family: 'JetBrains Mono', monospace;
-    resize: vertical; outline: none; transition: border-color 0.2s;
-  }
-  #headerInput:focus { border-color: rgba(99,102,241,0.3); }
-  #headerInput::placeholder { color: rgba(255,255,255,0.12); }
-
-  .btn-row { display: flex; gap: 10px; margin-top: 16px; }
-
-  .btn-analyze {
-    flex: 1; padding: 14px 24px; border-radius: 8px; border: none;
-    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-    color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 2px;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer; transition: all 0.3s;
-    box-shadow: 0 4px 20px rgba(99,102,241,0.25);
-  }
-  .btn-analyze:disabled {
-    background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.15);
-    box-shadow: none; cursor: not-allowed;
-  }
-  .btn-analyze:not(:disabled):hover { filter: brightness(1.1); }
-
-  .btn-clear, .btn-secondary {
-    padding: 14px 20px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);
-    background: transparent; color: rgba(255,255,255,0.3);
-    font-size: 11px; font-weight: 700; letter-spacing: 2px; cursor: pointer;
-    font-family: 'JetBrains Mono', monospace; transition: all 0.2s;
-  }
-  .btn-clear:hover, .btn-secondary:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.5); }
-
-  .howto {
-    margin-top: 20px; padding: 18px 24px; border-radius: 10px;
-    background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.04);
-    font-size: 11px; color: rgba(255,255,255,0.25); line-height: 1.8;
-  }
-  .howto strong { color: rgba(255,255,255,0.5); font-weight: 700; }
-
-  /* Report styles */
-  .report-section { display: flex; flex-direction: column; gap: 20px; }
-
-  .score-card { text-align: center; padding: 28px; }
-  .score-label { font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.2); margin-bottom: 16px; }
-  .score-time { margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.2); }
-
-  .gauge-ring-bg { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
-  .gauge-ring {
-    fill: none; stroke-width: 8; stroke-linecap: round;
-    transition: stroke-dashoffset 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-  .gauge-score { text-anchor: middle; font-size: 32px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-  .gauge-max { text-anchor: middle; fill: rgba(255,255,255,0.35); font-size: 10px; font-family: 'JetBrains Mono', monospace; }
-
-  .risk-badge {
-    display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 2px;
-    padding: 4px 14px; border-radius: 4px; margin-top: 8px;
-  }
-
-  .auth-row { display: flex; gap: 10px; }
-  .auth-badge {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
-    padding: 14px 20px; border-radius: 8px; flex: 1; min-width: 90;
-  }
-  .auth-badge .proto { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.35); }
-  .auth-badge .status { font-size: 14px; font-weight: 700; text-transform: uppercase; }
-
-  .data-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-  .data-row:last-child { border-bottom: none; }
-  .data-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; min-width: 140px; }
-  .data-value { font-size: 13px; color: rgba(255,255,255,0.85); text-align: right; word-break: break-all; max-width: 60%; }
-  .data-value.mono { font-family: 'JetBrains Mono', monospace; }
-  .data-value.warn { color: #f59e0b; }
-
-  .finding-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; }
-  .finding-icon { font-size: 14px; font-weight: 700; flex-shrink: 0; width: 18px; text-align: center; }
-  .finding-text { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; }
-  .finding-icon.pass { color: #22c55e; }
-  .finding-icon.warn { color: #f59e0b; }
-  .finding-icon.fail { color: #ef4444; }
-
-  .footer-brand {
-    text-align: center; padding: 20px 0 0; border-top: 1px solid rgba(255,255,255,0.04);
-    font-size: 10px; color: rgba(255,255,255,0.15); letter-spacing: 1px;
-  }
-
-  .action-row { display: flex; gap: 10px; }
-  .action-row .btn-secondary { flex: 1; }
-
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-  .fade-in { animation: fadeIn 0.35s ease; }
-
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-
-  @media (max-width: 600px) {
-    header { flex-direction: column; align-items: flex-start; gap: 10px; padding: 20px 16px 16px; }
-    .header-brand { text-align: left; }
-    main { padding: 16px 16px 60px; }
-    .auth-row { flex-direction: column; }
-    .data-row { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .data-value { text-align: left; max-width: 100%; }
-  }
+  body { min-height:100vh; background:var(--bg-deep); color:var(--text-primary); font-family:var(--sans); overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+  .bg-grid { position:fixed;inset:0;z-index:0;pointer-events:none; background-image:linear-gradient(rgba(56,139,253,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(56,139,253,0.03) 1px,transparent 1px); background-size:60px 60px; }
+  .bg-glow-1 { position:fixed;top:-15%;right:-10%;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(56,139,253,0.08) 0%,transparent 65%);pointer-events:none;z-index:0; }
+  .bg-glow-2 { position:fixed;bottom:-20%;left:-10%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(63,185,80,0.05) 0%,transparent 65%);pointer-events:none;z-index:0; }
+  header { position:relative;z-index:2;padding:20px 32px;border-bottom:1px solid var(--border);background:rgba(10,22,40,0.8);backdrop-filter:blur(12px);display:flex;justify-content:space-between;align-items:center; }
+  .logo-area { display:flex;align-items:center;gap:14px; }
+  .logo-icon { width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent) 0%,#1f6feb 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(56,139,253,0.3); }
+  .logo-icon svg { width:22px;height:22px; }
+  .logo-text h1 { font-size:20px;font-weight:800;color:var(--text-primary);letter-spacing:-0.3px; }
+  .logo-text span { font-size:11px;color:var(--text-secondary);font-family:var(--mono);letter-spacing:1px; }
+  .header-right { text-align:right; }
+  .header-right a { color:var(--accent-bright);text-decoration:none;font-size:13px;font-weight:600; }
+  .header-right a:hover { text-decoration:underline; }
+  .header-right .tagline { font-size:10px;color:var(--text-muted);font-family:var(--mono);margin-top:2px;letter-spacing:1px; }
+  main { max-width:820px;margin:0 auto;padding:28px 24px 80px;position:relative;z-index:2; }
+  .tabs { display:flex;gap:4px;margin-bottom:24px; }
+  .tab-btn { flex:1;padding:12px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:1.5px;font-family:var(--mono);background:var(--bg-panel);color:var(--text-muted);transition:all 0.25s; }
+  .tab-btn.active { background:var(--bg-card);color:var(--accent-bright);border-color:var(--border-bright);box-shadow:0 0 20px var(--accent-glow); }
+  .tab-btn:disabled { opacity:0.3;cursor:not-allowed; }
+  .tab-btn:not(:disabled):hover { border-color:rgba(56,139,253,0.2);color:var(--text-secondary); }
+  .card { background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;transition:border-color 0.3s; }
+  .card:hover { border-color:var(--border-bright); }
+  .card-header { display:flex;align-items:center;gap:10px;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--accent-bright);font-family:var(--mono);margin-bottom:18px;text-transform:uppercase; }
+  .card-header .icon { width:28px;height:28px;border-radius:6px;background:var(--accent-glow);display:flex;align-items:center;justify-content:center; }
+  .card-header .icon svg { width:14px;height:14px;stroke:var(--accent-bright);fill:none;stroke-width:2; }
+  .input-top { display:flex;justify-content:space-between;align-items:center;margin-bottom:16px; }
+  .btn-sample { padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg-panel);color:var(--accent-bright);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--mono);letter-spacing:0.5px;transition:all 0.2s; }
+  .btn-sample:hover { background:var(--accent-glow);border-color:var(--border-bright); }
+  #headerInput { width:100%;min-height:240px;padding:18px;border-radius:10px;background:var(--bg-deep);border:1px solid var(--border);color:var(--text-primary);font-size:12px;line-height:1.8;font-family:var(--mono);resize:vertical;outline:none;transition:border-color 0.3s,box-shadow 0.3s; }
+  #headerInput:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow); }
+  #headerInput::placeholder { color:var(--text-muted); }
+  .btn-row { display:flex;gap:10px;margin-top:18px; }
+  .btn-analyze { flex:1;padding:15px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#388bfd 0%,#1f6feb 100%);color:#fff;font-size:13px;font-weight:700;letter-spacing:1.5px;font-family:var(--mono);cursor:pointer;transition:all 0.3s;box-shadow:0 4px 24px rgba(56,139,253,0.3); }
+  .btn-analyze:disabled { background:var(--bg-panel);color:var(--text-muted);box-shadow:none;cursor:not-allowed; }
+  .btn-analyze:not(:disabled):hover { box-shadow:0 6px 32px rgba(56,139,253,0.45);transform:translateY(-1px); }
+  .btn-clear { padding:15px 20px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--mono);transition:all 0.2s; }
+  .btn-clear:hover { border-color:var(--border-bright);color:var(--text-primary); }
+  .info-cards { display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px; }
+  .info-card { padding:18px;border-radius:10px;background:var(--bg-panel);border:1px solid var(--border);font-size:12px;color:var(--text-secondary);line-height:1.7; }
+  .info-card h3 { font-size:12px;font-weight:700;color:var(--accent-bright);font-family:var(--mono);letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:6px; }
+  .info-card code { color:var(--text-primary);font-family:var(--mono);font-size:11px;background:rgba(56,139,253,0.08);padding:1px 5px;border-radius:3px; }
+  .score-section { text-align:center;padding:32px 24px; }
+  .gauge-wrap { position:relative;display:inline-block;margin:10px 0 16px; }
+  .gauge-ring-bg { fill:none;stroke:rgba(56,139,253,0.08);stroke-width:10; }
+  .gauge-ring { fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.4s cubic-bezier(0.34,1.56,0.64,1); }
+  .gauge-score { text-anchor:middle;font-size:38px;font-weight:800;font-family:var(--sans); }
+  .gauge-max { text-anchor:middle;fill:var(--text-muted);font-size:12px;font-family:var(--mono); }
+  .risk-badge { display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:2px;padding:8px 20px;border-radius:8px;font-family:var(--mono); }
+  .risk-badge .dot { width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+  .score-explain { margin-top:16px;font-size:14px;color:var(--text-secondary);line-height:1.6;max-width:480px;margin-left:auto;margin-right:auto; }
+  .auth-grid { display:grid;grid-template-columns:repeat(3,1fr);gap:12px; }
+  .auth-badge { display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 12px;border-radius:10px;text-align:center; }
+  .auth-badge .proto { font-size:10px;font-weight:700;letter-spacing:2px;color:var(--text-muted);font-family:var(--mono); }
+  .auth-badge .status { font-size:16px;font-weight:800;text-transform:uppercase;font-family:var(--mono); }
+  .auth-badge .explain { font-size:11px;color:var(--text-secondary);line-height:1.5;margin-top:4px; }
+  .auth-pass { background:var(--green-bg);border:1px solid var(--green-border); }
+  .auth-pass .status { color:var(--green); }
+  .auth-fail { background:var(--red-bg);border:1px solid var(--red-border); }
+  .auth-fail .status { color:var(--red); }
+  .auth-softfail { background:var(--yellow-bg);border:1px solid var(--yellow-border); }
+  .auth-softfail .status { color:var(--yellow); }
+  .auth-none { background:rgba(139,148,158,0.05);border:1px solid rgba(139,148,158,0.15); }
+  .auth-none .status { color:var(--text-muted); }
+  .data-row { display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(56,139,253,0.06); }
+  .data-row:last-child { border-bottom:none; }
+  .data-label { font-size:12px;color:var(--text-secondary);font-family:var(--mono);min-width:130px; }
+  .data-value { font-size:13px;color:var(--text-primary);text-align:right;word-break:break-all;max-width:60%; }
+  .data-value.mono { font-family:var(--mono); }
+  .data-value.danger { color:var(--red); }
+  .finding-row { display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-radius:8px;margin-bottom:8px; }
+  .finding-row:last-child { margin-bottom:0; }
+  .finding-row.pass { background:var(--green-bg);border:1px solid var(--green-border); }
+  .finding-row.warn { background:var(--yellow-bg);border:1px solid var(--yellow-border); }
+  .finding-row.fail { background:var(--red-bg);border:1px solid var(--red-border); }
+  .finding-icon { font-size:15px;font-weight:800;flex-shrink:0;width:20px;text-align:center;font-family:var(--mono); }
+  .finding-icon.pass { color:var(--green); }
+  .finding-icon.warn { color:var(--yellow); }
+  .finding-icon.fail { color:var(--red); }
+  .finding-content { flex:1; }
+  .finding-title { font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px; }
+  .finding-desc { font-size:11px;color:var(--text-secondary);line-height:1.5; }
+  .action-row { display:flex;gap:10px; }
+  .btn-action { flex:1;padding:13px 20px;border-radius:10px;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-secondary);font-size:12px;font-weight:700;letter-spacing:1.5px;cursor:pointer;font-family:var(--mono);transition:all 0.2s; }
+  .btn-action:hover { border-color:var(--border-bright);color:var(--accent-bright);background:var(--accent-glow); }
+  .footer-brand { text-align:center;padding:24px 0 0;margin-top:8px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted);font-family:var(--mono);letter-spacing:1px; }
+  .footer-brand a { color:var(--accent-bright);text-decoration:none; }
+  .report-section { display:flex;flex-direction:column;gap:20px; }
+  .scan-time { font-size:11px;color:var(--text-muted);font-family:var(--mono);margin-top:8px; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+  .fade-in { animation:fadeIn 0.4s ease forwards; }
+  .fade-in-delay-1 { animation-delay:0.1s;opacity:0; }
+  .fade-in-delay-2 { animation-delay:0.2s;opacity:0; }
+  .fade-in-delay-3 { animation-delay:0.3s;opacity:0; }
+  .fade-in-delay-4 { animation-delay:0.4s;opacity:0; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg-deep); }
+  ::-webkit-scrollbar-thumb { background:rgba(56,139,253,0.15);border-radius:3px; }
+  @media(max-width:640px) { header{flex-direction:column;align-items:flex-start;gap:12px;padding:16px} .header-right{text-align:left} main{padding:16px 14px 60px} .auth-grid{grid-template-columns:1fr} .info-cards{grid-template-columns:1fr} .data-row{flex-direction:column;align-items:flex-start;gap:4px} .data-value{text-align:left;max-width:100%} }
 </style>
 </head>
 <body>
-
-<div class="ambient-1"></div>
-<div class="ambient-2"></div>
-
+<div class="bg-grid"></div>
+<div class="bg-glow-1"></div>
+<div class="bg-glow-2"></div>
 <header>
-  <div>
-    <div class="logo-row">
-      <div class="status-dot" id="statusDot"></div>
-      <span class="logo-text">SENTRY4E</span>
-      <span class="version-badge">v1.0</span>
-    </div>
-    <p class="logo-sub">EMAIL HEADER INTELLIGENCE</p>
+  <div class="logo-area">
+    <div class="logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L3 7v6c0 5.25 3.75 10.13 9 11.38C17.25 23.13 21 18.25 21 13V7l-9-5z"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="logo-text"><h1>SENTRY4E</h1><span>EMAIL HEADER INTELLIGENCE v1.0</span></div>
   </div>
-  <div class="header-brand">
-    <div>mrtechnyc.com</div>
-    <div>FREE SECURITY TOOL</div>
-  </div>
+  <div class="header-right"><a href="https://mrtechnyc.com" target="_blank">mrtechnyc.com</a><div class="tagline">FREE SECURITY RESOURCE</div></div>
 </header>
-
 <main>
   <div class="tabs">
-    <button class="tab-btn active" id="tabInput" onclick="showTab('input')">HEADER INPUT</button>
-    <button class="tab-btn" id="tabReport" onclick="showTab('report')" disabled>SENTRY REPORT</button>
+    <button class="tab-btn active" id="tabInput" onclick="showTab('input')">⌨ HEADER INPUT</button>
+    <button class="tab-btn" id="tabReport" onclick="showTab('report')" disabled>◉ SENTRY REPORT</button>
   </div>
-
-  <!-- INPUT VIEW -->
   <div id="viewInput" class="fade-in">
     <div class="card">
-      <div class="input-header">
-        <div class="card-label">PASTE RAW EMAIL HEADERS</div>
-        <button class="btn-sample" onclick="loadSample()">LOAD SAMPLE</button>
+      <div class="card-header"><div class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>RAW HEADER ANALYSIS</div>
+      <div class="input-top">
+        <span style="font-size:12px;color:var(--text-secondary)">Paste the full email headers below</span>
+        <button class="btn-sample" onclick="loadSample()">⬇ LOAD SAMPLE</button>
       </div>
-      <textarea id="headerInput" placeholder="Delivered-To: user@example.com&#10;Received: from mail.example.com ...&#10;Authentication-Results: ...&#10;From: &quot;Sender Name&quot; <sender@domain.com>"></textarea>
+      <textarea id="headerInput" placeholder="Paste email headers here...&#10;&#10;Tip: In Gmail, open the email → click ⋮ → Show original&#10;Copy everything and paste it here."></textarea>
       <div class="btn-row">
-        <button class="btn-analyze" id="btnAnalyze" onclick="runAnalysis()" disabled>▶ ANALYZE HEADERS</button>
+        <button class="btn-analyze" id="btnAnalyze" onclick="runAnalysis()" disabled>▶ RUN SECURITY ANALYSIS</button>
         <button class="btn-clear" id="btnClear" onclick="resetAll()" style="display:none">CLEAR</button>
       </div>
     </div>
-    <div class="howto">
-      <strong>HOW TO GET HEADERS:</strong><br>
-      Gmail → Open email → ⋮ → "Show original"<br>
-      Outlook → Open email → ⋮ → "View message source"<br>
-      Apple Mail → View → Message → All Headers
+    <div class="info-cards">
+      <div class="info-card">
+        <h3>🔍 WHY USE THIS?</h3>
+        When you receive a suspicious email, the visible "From" name can be faked. Email headers contain the <code>technical fingerprints</code> that reveal the true origin — the real sending IP, whether the domain is authenticated, and if the message was tampered with in transit.
+        <strong style="display:block;margin-top:8px;color:var(--text-primary)">This is the same process IT security professionals use when triaging phishing reports.</strong>
+      </div>
+      <div class="info-card">
+        <h3>📋 HOW TO GET HEADERS</h3>
+        <strong style="color:var(--text-primary)">Gmail:</strong> Open email → <code>⋮</code> → "Show original"<br>
+        <strong style="color:var(--text-primary)">Outlook:</strong> Open email → <code>⋮</code> → "View message source"<br>
+        <strong style="color:var(--text-primary)">Apple Mail:</strong> View → Message → All Headers<br>
+        <strong style="color:var(--text-primary)">Yahoo:</strong> Open email → <code>⋮</code> → "View raw message"
+      </div>
+      <div class="info-card" style="grid-column:1/-1">
+        <h3>🛡️ WHAT WE CHECK</h3>
+        <strong style="color:var(--accent-bright)">SPF</strong> — Confirms the sending server is authorized by the domain owner.
+        <strong style="color:var(--accent-bright);margin-left:16px">DKIM</strong> — Verifies the email wasn't altered after it was sent.
+        <strong style="color:var(--accent-bright);margin-left:16px">DMARC</strong> — Ensures SPF and DKIM align with the "From" domain. Together, these three protocols are the industry standard for detecting spoofed and phishing emails in enterprise IT environments.
+      </div>
     </div>
   </div>
-
-  <!-- REPORT VIEW -->
-  <div id="viewReport" style="display:none" class="fade-in">
-    <div class="report-section" id="reportContent"></div>
-  </div>
+  <div id="viewReport" style="display:none"><div class="report-section" id="reportContent"></div></div>
 </main>
-
 <script>
-const SAMPLE_HEADER = `Delivered-To: user@example.com
+const SAMPLE_HEADER=`Delivered-To: user@example.com
 Received: by 2002:a05:7300:478a:b0:12a:5f3e:8c1d with SMTP id r10csp1234567dyk;
         Tue, 18 Mar 2025 09:23:45 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
@@ -267,240 +195,53 @@ MIME-Version: 1.0
 X-Mailer: PHPMailer 6.1.4
 X-Originating-IP: [45.33.32.156]
 Content-Type: multipart/alternative; boundary="boundary123"`;
-
-const input = document.getElementById('headerInput');
-const btnAnalyze = document.getElementById('btnAnalyze');
-const btnClear = document.getElementById('btnClear');
-
-input.addEventListener('input', () => {
-  const hasText = input.value.trim().length > 0;
-  btnAnalyze.disabled = !hasText;
-  btnClear.style.display = hasText ? 'block' : 'none';
-});
-
-function showTab(tab) {
-  document.getElementById('tabInput').classList.toggle('active', tab === 'input');
-  document.getElementById('tabReport').classList.toggle('active', tab === 'report');
-  document.getElementById('viewInput').style.display = tab === 'input' ? 'block' : 'none';
-  document.getElementById('viewReport').style.display = tab === 'report' ? 'block' : 'none';
-}
-
-function loadSample() {
-  input.value = SAMPLE_HEADER;
-  input.dispatchEvent(new Event('input'));
-}
-
-function resetAll() {
-  input.value = '';
-  input.dispatchEvent(new Event('input'));
-  document.getElementById('tabReport').disabled = true;
-  showTab('input');
-}
-
-// ── Parser ──
-function parseHeaders(raw) {
-  const lines = raw.split("\\n");
-  const h = {};
-  let cur = "";
-  for (const line of lines) {
-    if (/^\\s/.test(line) && cur) { h[cur] += " " + line.trim(); }
-    else {
-      const m = line.match(/^([A-Za-z0-9-]+):\\s*(.*)/);
-      if (m) { cur = m[1].toLowerCase(); h[cur] = (h[cur] ? h[cur] + " | " : "") + m[2].trim(); }
-    }
-  }
-  return h;
-}
-
-function extractOriginIP(raw, h) {
-  const xo = h["x-originating-ip"];
-  if (xo) { const m = xo.match(/\\[?([\\d.]+)\\]?/); if (m) return m[1]; }
-  const ci = raw.match(/client-ip=([\\d.]+)/);
-  if (ci) return ci[1];
-  const rc = raw.match(/Received:\\s*from\\s+\\S+\\s+\\(\\S+\\.\\s*\\[([\\d.]+)\\]\\)/i);
-  if (rc) return rc[1];
-  const any = raw.match(/\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b/);
-  return any ? any[0] : "Not Found";
-}
-
-function extractSenderName(h) {
-  const f = h["from"] || "";
-  const nm = f.match(/"([^"]+)"/); if (nm) return nm[1];
-  const an = f.match(/^([^<]+)</); if (an) return an[1].trim();
-  return f || "Not Found";
-}
-
-function extractFromDomain(h) {
-  const f = h["from"] || "";
-  const m = f.match(/@([\\w.-]+)/);
-  return m ? m[1] : "Not Found";
-}
-
-function extractFromEmail(h) {
-  const f = h["from"] || "";
-  const m = f.match(/<([^>]+)>/); if (m) return m[1];
-  const b = f.match(/[\\w.-]+@[\\w.-]+/);
-  return b ? b[0] : "Not Found";
-}
-
-function extractReturnPath(h) {
-  const rp = h["return-path"] || "";
-  const m = rp.match(/<([^>]+)>/);
-  return m ? m[1] : rp || "Not Found";
-}
-
-function extractSubject(h) { return h["subject"] || "Not Found"; }
-function extractMailer(h) { return h["x-mailer"] || h["user-agent"] || "Not Detected"; }
-
-function checkAuth(raw, type) {
-  const m = raw.match(new RegExp(type + "=(\\\\w+)", "i"));
-  if (m) return m[1].toLowerCase();
-  if (type === "spf") { const r = raw.match(/Received-SPF:\\s*(\\w+)/i); if (r) return r[1].toLowerCase(); }
-  return "none";
-}
-
-function computeScore(spf, dkim, dmarc, returnPath, fromEmail, fromDomain) {
-  let score = 10;
-  const findings = [];
-
-  if (spf === "pass") findings.push({ t: "SPF passed", c: "pass" });
-  else if (spf === "softfail") { score -= 2; findings.push({ t: "SPF softfail — sender IP not fully authorized", c: "warn" }); }
-  else if (spf === "fail") { score -= 3; findings.push({ t: "SPF failed — sender IP is not authorized", c: "fail" }); }
-  else { score -= 2; findings.push({ t: "SPF not configured", c: "warn" }); }
-
-  if (dkim === "pass") findings.push({ t: "DKIM signature verified", c: "pass" });
-  else if (dkim === "fail") { score -= 3; findings.push({ t: "DKIM failed — message may be tampered", c: "fail" }); }
-  else { score -= 1; findings.push({ t: "DKIM not present", c: "warn" }); }
-
-  if (dmarc === "pass") findings.push({ t: "DMARC policy passed", c: "pass" });
-  else if (dmarc === "fail") { score -= 2; findings.push({ t: "DMARC failed — domain alignment issue", c: "fail" }); }
-  else { score -= 1; findings.push({ t: "DMARC not configured", c: "warn" }); }
-
-  if (returnPath !== "Not Found" && fromEmail !== "Not Found") {
-    const rpd = (returnPath.split("@")[1] || "").toLowerCase();
-    const fd = (fromEmail.split("@")[1] || "").toLowerCase();
-    if (rpd && fd && rpd !== fd) { score -= 1; findings.push({ t: "Return-Path domain (" + rpd + ") differs from From domain (" + fd + ")", c: "warn" }); }
-    else if (rpd && fd) findings.push({ t: "Return-Path and From domain are aligned", c: "pass" });
-  }
-
-  const sus = [/xyz$/, /\\.tk$/, /\\.ml$/, /\\.ga$/, /\\.cf$/, /free/, /temp/, /disposable/];
-  if (fromDomain !== "Not Found" && sus.some(p => p.test(fromDomain.toLowerCase()))) {
-    score -= 1; findings.push({ t: 'Domain "' + fromDomain + '" uses a TLD commonly associated with spam', c: "warn" });
-  }
-
-  return { score: Math.max(0, Math.min(10, score)), findings };
-}
-
-// ── Analysis ──
-function runAnalysis() {
-  const raw = input.value.trim();
-  if (!raw) return;
-
-  const dot = document.getElementById('statusDot');
-  dot.classList.add('scanning');
-  btnAnalyze.textContent = '◌ SCANNING...';
-  btnAnalyze.disabled = true;
-
-  setTimeout(() => {
-    const h = parseHeaders(raw);
-    const originIP = extractOriginIP(raw, h);
-    const senderName = extractSenderName(h);
-    const fromDomain = extractFromDomain(h);
-    const fromEmail = extractFromEmail(h);
-    const returnPath = extractReturnPath(h);
-    const subject = extractSubject(h);
-    const mailer = extractMailer(h);
-    const spf = checkAuth(raw, "spf");
-    const dkim = checkAuth(raw, "dkim");
-    const dmarc = checkAuth(raw, "dmarc");
-    const { score, findings } = computeScore(spf, dkim, dmarc, returnPath, fromEmail, fromDomain);
-
-    let riskLabel, riskColor, riskBg;
-    if (score >= 8) { riskLabel = "LOW RISK"; riskColor = "#22c55e"; riskBg = "rgba(34,197,94,0.08)"; }
-    else if (score >= 5) { riskLabel = "MODERATE RISK"; riskColor = "#f59e0b"; riskBg = "rgba(245,158,11,0.08)"; }
-    else { riskLabel = "HIGH RISK"; riskColor = "#ef4444"; riskBg = "rgba(239,68,68,0.08)"; }
-
-    const circ = 2 * Math.PI * 54;
-    const offset = circ * (1 - score / 10);
-
-    const authColors = {
-      pass: { bg: "rgba(34,197,94,0.1)", bd: "#22c55e33", tx: "#22c55e" },
-      fail: { bg: "rgba(239,68,68,0.1)", bd: "#ef444433", tx: "#ef4444" },
-      softfail: { bg: "rgba(245,158,11,0.1)", bd: "#f59e0b33", tx: "#f59e0b" },
-      none: { bg: "rgba(255,255,255,0.03)", bd: "rgba(255,255,255,0.08)", tx: "rgba(255,255,255,0.3)" }
-    };
-    function ab(proto, status) {
-      const c = authColors[status] || authColors.none;
-      return '<div class="auth-badge" style="background:'+c.bg+';border:1px solid '+c.bd+'"><span class="proto">'+proto+'</span><span class="status" style="color:'+c.tx+'">'+status+'</span></div>';
-    }
-
-    function dr(label, value, isMono, isWarn) {
-      return '<div class="data-row"><span class="data-label">'+label+'</span><span class="data-value'+(isMono?' mono':'')+(isWarn?' warn':'')+'">'+escHtml(value)+'</span></div>';
-    }
-
-    const findingIcons = { pass: "✓", warn: "⚠", fail: "✕" };
-    let findingsHtml = findings.map(f =>
-      '<div class="finding-row"><span class="finding-icon '+f.c+'">'+findingIcons[f.c]+'</span><span class="finding-text">'+escHtml(f.t)+'</span></div>'
-    ).join('');
-
-    const ts = new Date().toLocaleString();
-
-    document.getElementById('reportContent').innerHTML = `
-      <div class="card score-card fade-in">
-        <div class="score-label">INTEGRITY SCORE</div>
-        <svg width="140" height="140" viewBox="0 0 120 120" style="display:block;margin:0 auto">
-          <circle cx="60" cy="60" r="54" class="gauge-ring-bg"/>
-          <circle cx="60" cy="60" r="54" class="gauge-ring" stroke="${riskColor}"
-            stroke-dasharray="${circ}" stroke-dashoffset="${offset}" transform="rotate(-90 60 60)"/>
-          <text x="60" y="55" class="gauge-score" fill="${riskColor}">${score}</text>
-          <text x="60" y="72" class="gauge-max">/10</text>
-        </svg>
-        <div><span class="risk-badge" style="color:${riskColor};background:${riskBg};border:1px solid ${riskColor}33">${riskLabel}</span></div>
-        <div class="score-time">Scanned ${escHtml(ts)}</div>
-      </div>
-
-      <div class="card fade-in">
-        <div class="card-label">AUTHENTICATION PROTOCOLS</div>
-        <div class="auth-row">${ab('SPF',spf)}${ab('DKIM',dkim)}${ab('DMARC',dmarc)}</div>
-      </div>
-
-      <div class="card fade-in">
-        <div class="card-label">EXTRACTED MARKERS</div>
-        ${dr('Origin IP', originIP, true, false)}
-        ${dr('Sender Name', senderName, false, false)}
-        ${dr('From Email', fromEmail, true, false)}
-        ${dr('From Domain', fromDomain, true, score < 5)}
-        ${dr('Return-Path', returnPath, true, false)}
-        ${dr('Subject', subject, false, false)}
-        ${dr('Mailer', mailer, true, false)}
-      </div>
-
-      <div class="card fade-in">
-        <div class="card-label">FINDINGS</div>
-        ${findingsHtml}
-      </div>
-
-      <div class="action-row">
-        <button class="btn-secondary" onclick="showTab('input')">← BACK TO INPUT</button>
-        <button class="btn-secondary" onclick="resetAll()">NEW SCAN</button>
-      </div>
-
-      <div class="footer-brand">SENTRY4E v1.0 — mrtechnyc.com — FREE SECURITY RESOURCE</div>
-    `;
-
-    dot.classList.remove('scanning');
-    btnAnalyze.textContent = '▶ ANALYZE HEADERS';
-    btnAnalyze.disabled = false;
-    document.getElementById('tabReport').disabled = false;
-    showTab('report');
-  }, 1200);
-}
-
-function escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+const input=document.getElementById('headerInput'),btnAnalyze=document.getElementById('btnAnalyze'),btnClear=document.getElementById('btnClear');
+input.addEventListener('input',()=>{const h=input.value.trim().length>0;btnAnalyze.disabled=!h;btnClear.style.display=h?'block':'none'});
+function showTab(t){document.getElementById('tabInput').classList.toggle('active',t==='input');document.getElementById('tabReport').classList.toggle('active',t==='report');document.getElementById('viewInput').style.display=t==='input'?'block':'none';document.getElementById('viewReport').style.display=t==='report'?'block':'none'}
+function loadSample(){input.value=SAMPLE_HEADER;input.dispatchEvent(new Event('input'))}
+function resetAll(){input.value='';input.dispatchEvent(new Event('input'));document.getElementById('tabReport').disabled=true;showTab('input')}
+function parseHeaders(r){const l=r.split("\n"),h={};let c="";for(const line of l){if(/^\s/.test(line)&&c)h[c]+=" "+line.trim();else{const m=line.match(/^([A-Za-z0-9-]+):\s*(.*)/);if(m){c=m[1].toLowerCase();h[c]=(h[c]?h[c]+" | ":"")+m[2].trim()}}}return h}
+function getIP(r,h){const x=h["x-originating-ip"];if(x){const m=x.match(/\[?([\d.]+)\]?/);if(m)return m[1]}const c=r.match(/client-ip=([\d.]+)/);if(c)return c[1];const v=r.match(/Received:\s*from\s+\S+\s+\(\S+\.\s*\[([\d.]+)\]\)/i);if(v)return v[1];const a=r.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);return a?a[0]:"Not Found"}
+function getName(h){const f=h["from"]||"";const m=f.match(/"([^"]+)"/);if(m)return m[1];const a=f.match(/^([^<]+)</);if(a)return a[1].trim();return f||"Not Found"}
+function getDomain(h){const m=(h["from"]||"").match(/@([\w.-]+)/);return m?m[1]:"Not Found"}
+function getEmail(h){const f=h["from"]||"";const m=f.match(/<([^>]+)>/);if(m)return m[1];const b=f.match(/[\w.-]+@[\w.-]+/);return b?b[0]:"Not Found"}
+function getRP(h){const r=h["return-path"]||"";const m=r.match(/<([^>]+)>/);return m?m[1]:r||"Not Found"}
+function getSubject(h){return h["subject"]||"Not Found"}
+function getMailer(h){return h["x-mailer"]||h["user-agent"]||"Not Detected"}
+function getDate(h){return h["date"]||"Not Found"}
+function checkAuth(r,t){const m=r.match(new RegExp(t+"=(\\w+)","i"));if(m)return m[1].toLowerCase();if(t==="spf"){const s=r.match(/Received-SPF:\s*(\w+)/i);if(s)return s[1].toLowerCase()}return"none"}
+const authExplain={spf:{pass:"The sending server is authorized by the domain — expected for legitimate mail.",softfail:"The server is not fully authorized. A permissive policy spammers can exploit.",fail:"The server is NOT authorized to send for this domain. Strong phishing indicator.",none:"No SPF record exists. Sender identity cannot be verified through SPF."},dkim:{pass:"Cryptographic signature valid — message was not altered in transit.",fail:"Signature invalid. The message may have been tampered with after sending.",none:"No DKIM signature found. No cryptographic proof of message integrity."},dmarc:{pass:"Domain alignment passed — SPF/DKIM match the From domain.",fail:"Alignment failed. From domain doesn't match authenticated source. Common in spoofed emails.",none:"No DMARC policy published. No alignment requirements enforced."}};
+function computeScore(spf,dkim,dmarc,rp,email,domain){let s=10;const f=[];
+if(spf==="pass")f.push({t:"SPF Passed",d:"Sending server is authorized by domain owner.",c:"pass"});else if(spf==="softfail"){s-=2;f.push({t:"SPF Softfail",d:"Server not fully authorized — permissive policy leaves room for abuse.",c:"warn"})}else if(spf==="fail"){s-=3;f.push({t:"SPF Failed",d:"Sending server is explicitly NOT authorized. Strong spoofing indicator.",c:"fail"})}else{s-=2;f.push({t:"SPF Missing",d:"No SPF record published — sender identity unverifiable.",c:"warn"})}
+if(dkim==="pass")f.push({t:"DKIM Verified",d:"Cryptographic signature valid — message integrity confirmed.",c:"pass"});else if(dkim==="fail"){s-=3;f.push({t:"DKIM Failed",d:"Signature invalid — message may have been altered after sending.",c:"fail"})}else{s-=1;f.push({t:"DKIM Missing",d:"No signature present — no proof message wasn't tampered with.",c:"warn"})}
+if(dmarc==="pass")f.push({t:"DMARC Aligned",d:"Domain alignment confirmed between authentication and From header.",c:"pass"});else if(dmarc==="fail"){s-=2;f.push({t:"DMARC Failed",d:"From domain doesn't align with authenticated source — likely spoofed.",c:"fail"})}else{s-=1;f.push({t:"DMARC Missing",d:"No DMARC policy — no alignment enforcement in place.",c:"warn"})}
+if(rp!=="Not Found"&&email!=="Not Found"){const rd=(rp.split("@")[1]||"").toLowerCase(),fd=(email.split("@")[1]||"").toLowerCase();if(rd&&fd&&rd!==fd){s-=1;f.push({t:"Return-Path Mismatch",d:"Return-Path ("+rd+") differs from From ("+fd+"). Bounce address doesn't match sender.",c:"warn"})}else if(rd&&fd)f.push({t:"Return-Path Aligned",d:"Bounce address matches the sender domain.",c:"pass"})}
+const sus=[/xyz$/,/\.tk$/,/\.ml$/,/\.ga$/,/\.cf$/,/free/,/temp/,/disposable/];if(domain!=="Not Found"&&sus.some(p=>p.test(domain.toLowerCase()))){s-=1;f.push({t:"Suspicious TLD",d:'"'+domain+'" uses a top-level domain commonly associated with spam and phishing.',c:"warn"})}
+return{score:Math.max(0,Math.min(10,s)),findings:f}}
+function runAnalysis(){const raw=input.value.trim();if(!raw)return;btnAnalyze.textContent='◌ ANALYZING...';btnAnalyze.disabled=true;
+setTimeout(()=>{const h=parseHeaders(raw),ip=getIP(raw,h),name=getName(h),domain=getDomain(h),email=getEmail(h),rp=getRP(h),subject=getSubject(h),mailer=getMailer(h),date=getDate(h);
+const spf=checkAuth(raw,"spf"),dkim=checkAuth(raw,"dkim"),dmarc=checkAuth(raw,"dmarc");const{score,findings}=computeScore(spf,dkim,dmarc,rp,email,domain);
+let rL,rC,rBg,rBd,sE;
+if(score>=8){rL="LOW RISK";rC="var(--green)";rBg="var(--green-bg)";rBd="var(--green-border)";sE="This email passed major authentication checks. The sending infrastructure appears legitimate. Standard caution still applies — verify the content makes sense for the sender."}
+else if(score>=5){rL="MODERATE RISK";rC="var(--yellow)";rBg="var(--yellow-bg)";rBd="var(--yellow-border)";sE="Some authentication checks failed or are missing. This could indicate a misconfigured sender OR a spoofing attempt. Verify the sender through a separate channel before clicking links or opening attachments."}
+else{rL="HIGH RISK";rC="var(--red)";rBg="var(--red-bg)";rBd="var(--red-border)";sE="Multiple authentication failures detected. This email shows strong indicators of spoofing or phishing. Do not click links, download attachments, or reply. Report this to your IT/security team."}
+const circ=2*Math.PI*54,offset=circ*(1-score/10);
+function ab(p,st){const cls=st==="pass"?"auth-pass":st==="fail"?"auth-fail":st==="softfail"?"auth-softfail":"auth-none";const ex=authExplain[p.toLowerCase()][st]||"";return'<div class="auth-badge '+cls+'"><span class="proto">'+p+'</span><span class="status">'+st+'</span><span class="explain">'+esc(ex)+'</span></div>'}
+function dr(l,v,m,w){return'<div class="data-row"><span class="data-label">'+l+'</span><span class="data-value'+(m?' mono':'')+(w?' danger':'')+'">' +esc(v)+'</span></div>'}
+let fH=findings.map(f=>'<div class="finding-row '+f.c+'"><span class="finding-icon '+f.c+'">'+(f.c==='pass'?'✓':f.c==='warn'?'⚠':'✕')+'</span><div class="finding-content"><div class="finding-title">'+esc(f.t)+'</div><div class="finding-desc">'+esc(f.d)+'</div></div></div>').join('');
+document.getElementById('reportContent').innerHTML=`
+<div class="card score-section fade-in"><div class="card-header"><div class="icon"><svg viewBox="0 0 24 24"><path d="M12 2L3 7v6c0 5.25 3.75 10.13 9 11.38C17.25 23.13 21 18.25 21 13V7l-9-5z"/></svg></div>INTEGRITY SCORE</div>
+<div class="gauge-wrap"><svg width="160" height="160" viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" class="gauge-ring-bg"/><circle cx="60" cy="60" r="54" class="gauge-ring" stroke="${rC}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}" transform="rotate(-90 60 60)"/><text x="60" y="56" class="gauge-score" fill="${rC}">${score}</text><text x="60" y="74" class="gauge-max">/10</text></svg></div>
+<div><span class="risk-badge" style="color:${rC};background:${rBg};border:1px solid ${rBd}"><span class="dot" style="background:${rC}"></span>${rL}</span></div>
+<div class="score-explain">${sE}</div><div class="scan-time">Analyzed ${esc(new Date().toLocaleString())}</div></div>
+<div class="card fade-in fade-in-delay-1"><div class="card-header"><div class="icon"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg></div>AUTHENTICATION PROTOCOLS</div><div class="auth-grid">${ab('SPF',spf)}${ab('DKIM',dkim)}${ab('DMARC',dmarc)}</div></div>
+<div class="card fade-in fade-in-delay-2"><div class="card-header"><div class="icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg></div>EXTRACTED MARKERS</div>
+${dr('Origin IP',ip,true,false)}${dr('Sender Name',name,false,false)}${dr('From Email',email,true,false)}${dr('From Domain',domain,true,score<5)}${dr('Return-Path',rp,true,false)}${dr('Subject',subject,false,false)}${dr('Date',date,false,false)}${dr('Mailer',mailer,true,false)}</div>
+<div class="card fade-in fade-in-delay-3"><div class="card-header"><div class="icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>DETAILED FINDINGS</div>${fH}</div>
+<div class="action-row fade-in fade-in-delay-4"><button class="btn-action" onclick="showTab('input')">← BACK TO INPUT</button><button class="btn-action" onclick="resetAll()">⟳ NEW SCAN</button></div>
+<div class="footer-brand fade-in fade-in-delay-4">SENTRY4E v1.0 — A free resource by <a href="https://mrtechnyc.com" target="_blank">MrTechNYC</a></div>`;
+btnAnalyze.textContent='▶ RUN SECURITY ANALYSIS';btnAnalyze.disabled=false;document.getElementById('tabReport').disabled=false;showTab('report')},1400)}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 </script>
 </body>
 </html>
